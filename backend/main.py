@@ -1,6 +1,7 @@
 # Podcast Backend
 
 from pathlib import Path
+import os
 import sqlite3
 from datetime import datetime, timezone
 
@@ -11,11 +12,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        os.getenv(
+            "FRONTEND_URL",
+            "http://localhost:5173"
+        )
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
