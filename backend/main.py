@@ -73,7 +73,13 @@ class AnalyticsEvent(BaseModel):
 
 # Database
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "podcast.db"
+
+DB_PATH = Path(
+    os.getenv(
+        "DB_PATH",
+        str(BASE_DIR / "podcast.db")
+    )
+)
 
 
 def get_db_connection():
