@@ -19,10 +19,16 @@ function EpisodeCard({ episode, onPlay, onOpenEpisode, podcastArtworkUrl }) {
       <div className="episode-artwork">
         {podcastArtworkUrl && !imageFailed ? (
           <img
-            src={podcastArtworkUrl}
-            alt=""
-            onError={() => setImageFailed(true)}
-          />
+  src={podcastArtworkUrl}
+  alt=""
+ onLoad={() => {
+  setImageFailed(false);
+}}
+  onError={() => {
+    console.log("IMAGE FAILED:", podcastArtworkUrl);
+    setImageFailed(true);
+  }}
+/>
         ) : (
           <div className="episode-artwork-placeholder">PODCAST</div>
         )}

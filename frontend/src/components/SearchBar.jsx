@@ -1,19 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function SearchBar({ onSearch, onClear }) {
   const [query, setQuery] = useState("");
 
-  function handleSubmit(event) {
-    event.preventDefault();
-
+  useEffect(() => {
     const cleanedQuery = query.trim();
 
     if (!cleanedQuery) {
+      onClear();
       return;
     }
 
-    onSearch(cleanedQuery);
-  }
+    const timer = setTimeout(() => {
+      onSearch(cleanedQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, onSearch, onClear]);
+
+ function handleSubmit(event) {
+  event.preventDefault();
+}
 
   function handleClear() {
     setQuery("");

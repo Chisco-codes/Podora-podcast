@@ -1,7 +1,15 @@
 import { useEffect, useRef } from "react";
 
-function AudioPlayer({ episode, onClose, onTrackEvent }) {
-  const audioRef = useRef(null);
+function AudioPlayer({
+  episode,
+  onClose,
+  onTrackEvent,
+  episodes,
+  onChangeEpisode,
+  onRequestNext,
+}) 
+
+{  const audioRef = useRef(null);
   const lastProgressRef = useRef(0);
 
   useEffect(() => {
@@ -70,6 +78,60 @@ function AudioPlayer({ episode, onClose, onTrackEvent }) {
     });
   }
 
+     const currentEpisodeIndex = episodes?.findIndex(
+    (item) => item.id === episode.id
+  );
+
+  const previousEpisode =
+    currentEpisodeIndex > 0
+      ? episodes[currentEpisodeIndex - 1]
+      : null;
+
+  const nextEpisode =
+    currentEpisodeIndex >= 0 &&
+    currentEpisodeIndex < episodes.length - 1
+      ? episodes[currentEpisodeIndex + 1]
+      : null;
+
+  function handlePrevious() {
+    if (!previousEpisode) {
+      return;
+    }
+
+    onChangeEpisode(previousEpisode);
+  }
+
+function handleNext() {
+  if (nextEpisode) {
+    onChangeEpisode(nextEpisode);
+    return;
+  }
+
+  onRequestNext?.();
+}
+
+  function handleRewind() {
+    if (!audioRef.current) {
+      return;
+    }
+
+    audioRef.current.currentTime = Math.max(
+      0,
+      audioRef.current.currentTime - 15
+    );
+  }
+
+  function handleForward() {
+    if (!audioRef.current) {
+      return;
+    }
+
+    audioRef.current.currentTime = Math.min(
+      audioRef.current.duration || Infinity,
+      audioRef.current.currentTime + 30
+    );
+  }
+
   return (
     <div className="audio-player">
       <div className="audio-player-info">
@@ -91,6 +153,38 @@ function AudioPlayer({ episode, onClose, onTrackEvent }) {
       >
         Your browser does not support audio playback.
       </audio>
+
+              <div className="audio-player-actions">
+        <button
+          type="button"
+          onClick={handlePrevious}
+          disabled={!previousEpisode}
+        >
+          ⏮ Previous
+        </button>
+
+        <button
+          type="button"
+          onClick={handleRewind}
+        >
+          ↶ 15s
+        </button>
+
+        <button
+          type="button"
+          onClick={handleForward}
+        >
+          30s ↷
+        </button>
+
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={false}
+        >
+          Next ⏭
+        </button>
+      </div>
 
       <button
         className="audio-player-close"

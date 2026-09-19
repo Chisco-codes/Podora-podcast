@@ -150,6 +150,7 @@ def get_episodes(
     }
 
 
+
 # Search Endpoint
 @app.get("/episodes/search")
 def search_episodes(
@@ -159,45 +160,153 @@ def search_episodes(
 ):
     connection = get_db_connection()
 
-    search_term = f"%{q}%"
+    query = q.strip()
 
-    total = connection.execute(
+    if not query:
+        connection.close()
+
+        return {
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "query": q,
+            "results": []
+        }
+
+    search_terms = [
+        term.strip()
+        for term in query.split()
+        if term.strip()
+    ]
+
+    if not search_terms:
+        connection.close()
+
+        return {
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "query": q,
+            "results": []
+        }
+
+    # Stage 1:
+    # Try a strict multi-word search first.
+    exact_query = " AND ".join(
+        f'"{term.replace(chr(34), "")}"'
+        for term in search_terms
+    )
+
+    exact_total = connection.execute(
         """
         SELECT COUNT(*)
-        FROM episodes
-        JOIN podcasts
-            ON episodes.podcast_id = podcasts.id
-        WHERE
-            episodes.title LIKE ?
-            OR episodes.description LIKE ?
-            OR podcasts.title LIKE ?
-            OR podcasts.description LIKE ?
+        FROM podcast_search
+        WHERE podcast_search MATCH ?
         """,
-        (search_term, search_term, search_term, search_term)
+        (exact_query,)
+    ).fetchone()[0]
+
+    if exact_total > 0:
+        rows = connection.execute(
+            """
+            SELECT
+                episodes.*,
+                podcasts.title AS podcast_title,
+                podcasts.artwork_url AS podcast_image_url
+            FROM podcast_search
+            JOIN episodes
+                ON episodes.id = podcast_search.rowid
+            JOIN podcasts
+                ON episodes.podcast_id = podcasts.id
+            WHERE podcast_search MATCH ?
+            ORDER BY rank
+            LIMIT ?
+            OFFSET ?
+            """,
+            (
+                exact_query,
+                limit,
+                offset
+            )
+        ).fetchall()
+
+        connection.close()
+
+        return {
+            "total": exact_total,
+            "limit": limit,
+            "offset": offset,
+            "query": q,
+            "results": [dict(row) for row in rows]
+        }
+
+      # Stage 2:
+    # Only broaden the search when every search term exists
+    # somewhere in the indexed dataset.
+    #
+    # This prevents a query such as:
+    #
+    #     "ashanti region"
+    #
+    # from becoming a broad search for only "region" when
+    # "ashanti" has no indexed matches.
+    term_queries = []
+
+    for term in search_terms:
+        term_query = f'"{term.replace(chr(34), "")}"'
+
+        term_total = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM podcast_search
+            WHERE podcast_search MATCH ?
+            """,
+            (term_query,)
+        ).fetchone()[0]
+
+        if term_total == 0:
+            connection.close()
+
+            return {
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "query": q,
+                "results": []
+            }
+
+        term_queries.append(term_query)
+
+    # All terms exist, so a broader OR search is now allowed.
+    broad_query = " OR ".join(term_queries)
+
+    broad_total = connection.execute(
+        """
+        SELECT COUNT(*)
+        FROM podcast_search
+        WHERE podcast_search MATCH ?
+        """,
+        (broad_query,)
     ).fetchone()[0]
 
     rows = connection.execute(
         """
         SELECT
             episodes.*,
-            podcasts.title AS podcast_title
-        FROM episodes
+            podcasts.title AS podcast_title,
+            podcasts.artwork_url AS podcast_image_url
+        FROM podcast_search
+        JOIN episodes
+            ON episodes.id = podcast_search.rowid
         JOIN podcasts
             ON episodes.podcast_id = podcasts.id
-        WHERE
-            episodes.title LIKE ?
-            OR episodes.description LIKE ?
-            OR podcasts.title LIKE ?
-            OR podcasts.description LIKE ?
-        ORDER BY episodes.published DESC
+        WHERE podcast_search MATCH ?
+        ORDER BY rank
         LIMIT ?
         OFFSET ?
         """,
         (
-            search_term,
-            search_term,
-            search_term,
-            search_term,
+            broad_query,
             limit,
             offset
         )
@@ -206,14 +315,13 @@ def search_episodes(
     connection.close()
 
     return {
-        "total": total,
+        "total": broad_total,
         "limit": limit,
         "offset": offset,
         "query": q,
         "results": [dict(row) for row in rows]
     }
-
-
+    
 # Podcasts Endpoint
 @app.get("/podcasts", response_model=list[Podcast])
 def get_podcasts():
@@ -230,6 +338,8 @@ def get_podcasts():
     connection.close()
 
     return [dict(row) for row in rows]
+
+
 
 
 # Podcast Episodes Endpoint
