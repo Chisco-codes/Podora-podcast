@@ -78,7 +78,6 @@ function App() {
   const [isLoadingEpisodes, setIsLoadingEpisodes] =
     useState(false);
 
-  // Podcast-specific episode search.
   const [podcastEpisodeSearchQuery, setPodcastEpisodeSearchQuery] =
     useState("");
 
@@ -100,7 +99,6 @@ function App() {
   const [currentEpisode, setCurrentEpisode] =
     useState(null);
 
-  // Episodes currently available to the audio player.
   const [audioEpisodes, setAudioEpisodes] =
     useState([]);
 
@@ -126,6 +124,7 @@ function App() {
   // -------------------------
 
   const [page, setPage] = useState(0);
+
   const [totalEpisodes, setTotalEpisodes] =
     useState(0);
 
@@ -145,6 +144,19 @@ function App() {
   useEffect(() => {
     setFeaturedImageFailed(false);
   }, [episodes[0]?.id]);
+
+  // -------------------------
+  // KEEP NEW VIEWS AT TOP
+  // -------------------------
+
+  useEffect(() => {
+    if (currentView === "podcast" || currentView === "episode") {
+      window.scrollTo({
+        top: 0,
+        behavior: "auto",
+      });
+    }
+  }, [currentView]);
 
   // -------------------------
   // LOAD PODCASTS
@@ -233,7 +245,6 @@ function App() {
       source: currentView,
     });
 
-    // Select playback queue based on context.
     if (currentView === "podcast") {
       setAudioEpisodes(podcastEpisodes);
     } else if (
@@ -247,14 +258,16 @@ function App() {
       setAudioEpisodes(episodes);
     }
 
+    /*
+     * Do not scroll to the player here.
+     *
+     * Previously this used scrollIntoView(), which caused
+     * the page to jump down when the user pressed Play.
+     *
+     * The player will now behave as a compact mobile
+     * listening control without moving the user's page.
+     */
     setCurrentEpisode(episode);
-
-    setTimeout(() => {
-      audioPlayerRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }, 0);
   }
 
   // -------------------------
@@ -532,16 +545,13 @@ function App() {
   function handleOpenPodcast(podcast) {
     setSelectedPodcast(podcast);
 
-    // Reset global discovery search.
     setSearchQuery("");
     setPage(0);
 
-    // Reset podcast-specific search.
     setPodcastEpisodeSearchQuery("");
     setPodcastEpisodeSearchResults([]);
     setIsSearchingPodcastEpisodes(false);
 
-    // Reset podcast episode list.
     setPodcastEpisodes([]);
     setPodcastTotalEpisodes(0);
 
@@ -675,8 +685,6 @@ function App() {
           ...data.results,
         ]);
 
-        // If the user previously searched,
-        // update search results with newly loaded episodes.
         if (podcastEpisodeSearchQuery) {
           const lowerQuery =
             podcastEpisodeSearchQuery.toLowerCase();
@@ -1303,6 +1311,7 @@ function App() {
               </p>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument("about")
                 }
@@ -1311,6 +1320,7 @@ function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument("beta")
                 }
@@ -1319,6 +1329,7 @@ function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument("content")
                 }
@@ -1327,6 +1338,7 @@ function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument("creator")
                 }
@@ -1341,6 +1353,7 @@ function App() {
               </p>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument(
                     "personalization"
@@ -1351,6 +1364,7 @@ function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument(
                     "monetization"
@@ -1361,6 +1375,7 @@ function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument("roadmap")
                 }
@@ -1375,6 +1390,7 @@ function App() {
               </p>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument("terms")
                 }
@@ -1383,6 +1399,7 @@ function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setActiveFooterDocument("privacy")
                 }
