@@ -1052,7 +1052,7 @@ function App() {
                     </div>
                   </div>
 
-                  {isLoadingEpisodes ? (
+                  {episodes.length === 0 && isLoadingEpisodes ? (
                     <div className="episodes-message">
                       Loading episodes...
                     </div>
