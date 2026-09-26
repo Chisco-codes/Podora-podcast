@@ -335,5 +335,5 @@ def import_podcast(rss_url):
 
 if __name__ == "__main__":
     import_podcast(
-        "https://feeds.acast.com/public/shows/6527f12a52b38a00117e6b8a"
+        "https://www.kdnuggets.com/feed"
     )
